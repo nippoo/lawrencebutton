@@ -21,8 +21,6 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "fatfs.h"
-#include "string.h"
-#include "math.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -47,8 +45,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-
 I2C_HandleTypeDef hi2c1;
+
 I2S_HandleTypeDef hi2s2;
 DMA_HandleTypeDef hdma_spi2_tx;
 
@@ -57,7 +55,7 @@ SD_HandleTypeDef hsd;
 /* USER CODE BEGIN PV */
 
 /* Ping-Pong buffer used for audio play */
-uint16_t  dma_buffer  [AUDIO_BUFFER_SIZE];
+uint16_t dma_buffer  [AUDIO_BUFFER_SIZE];
 
 uint32_t AudioPlayStart = 0;
 
@@ -69,9 +67,6 @@ FIL fil;        /* File object */
 FRESULT fr;
 FATFS myFAT;
 UINT br = 0;
-
-float     osc_phi     = 0;
-float     osc_phi_inc = 440.0f / 44100.0f; // generating 440HZ
 
 /* USER CODE END PV */
 
@@ -99,7 +94,7 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-	  /* USER CODE END 1 */
+  /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -128,24 +123,18 @@ int main(void)
 
   HAL_Delay(300);
 
-//  char line[100]; /* Line buffer */
-
   fr = f_mount(&myFAT, (TCHAR const*)SDPath, 1);
 
   /*## Open and create a text file #################################*/
   HAL_Delay(300);
 
-  fr = f_open(&fil, "001.wav", FA_READ);
+  fr = f_open(&fil, "003.wav", FA_READ);
   if (fr) return (int)fr;
-  WaveDataLength = f_size(&fil);
-//
-//  /* Read every line and display it */
-//  while (f_gets(line, sizeof line, &fil)) {
-//	  HAL_Delay(10);
-//  }
-//
-//  /* Close the file */
-//  f_close(&fil);
+//  WaveDataLength = f_size(&fil);
+
+  // start circular dma
+  f_rewind(&fil);
+  f_read(&fil, &dma_buffer[0], AUDIO_BUFFER_SIZE*2, &br);
 
   /* USER CODE END 2 */
 
@@ -153,16 +142,13 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-//	  HAL_Delay(1000);
 	  if (HAL_GPIO_ReadPin(GPIOA, SENSOR_Pin) == GPIO_PIN_SET)
 	  {
 		  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_SET);
-		  f_lseek(&fil, 0);
-		  f_read(&fil, &dma_buffer[0], AUDIO_BUFFER_SIZE, &br);
-		  AudioRemSize = WaveDataLength - AUDIO_BUFFER_SIZE;
-//		  HAL_I2S_Transmit_DMA(&hi2s2, (uint16_t*)&Audio_Buffer[0], AUDIO_BUFFER_SIZE);
+//		  f_lseek(&fil, 0);
+//		  f_read(&fil, &dma_buffer[0], AUDIO_BUFFER_SIZE, &br);
+//		  AudioRemSize = WaveDataLength - br;
 		  StartAudioBuffers(&hi2s2);
-		  HAL_Delay(500);
 	  }
 	  else
 	  {
@@ -437,34 +423,16 @@ void DMA1_Stream5_IRQHandler(void) // this function must be included to avoid DM
   HAL_DMA_IRQHandler(&hdma_spi2_tx);
 }
 
-//void FillAudioBuffer (uint32_t *buffer, uint16_t len)
-//{
-//	  float     a;
-//	  int16_t   y;
-//	  uint16_t  c;
-//	  for (c = 0; c < len; c++)
-//	  {
-//	    // calculate sin
-//	    a = (float) sin (osc_phi * 6.2832f) * 0.20f;
-//	    osc_phi += osc_phi_inc;
-//	    osc_phi -= (float) ((uint16_t) osc_phi);
-//	    //   float to integer
-//	    y = (int16_t) (a * 32767.0f);
-//	    // auf beide kanäle
-//	    buffer [c] =  ((uint32_t) (uint16_t) y) <<  0  |
-//	                  ((uint32_t) (uint16_t) y) << 16;
-//
-//	  }
-//}
-
 void StartAudioBuffers (I2S_HandleTypeDef *hi2s)
 {
   // clear buffer
 //  memset (dma_buffer,0, sizeof (dma_buffer ));
   HAL_GPIO_WritePin(GPIOE, LCD_E_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOE, LCD_DIG1CC_Pin, GPIO_PIN_SET);
-  // start circular dma
-  HAL_I2S_Transmit_DMA (hi2s, (uint32_t *) dma_buffer, AUDIO_BUFFER_SIZE << 1);
+
+
+//  AudioRemSize = WaveDataLength - br;
+  HAL_I2S_Transmit_DMA (hi2s,  dma_buffer, AUDIO_BUFFER_SIZE);
 }
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -473,20 +441,20 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 //  FillBuffer  (&(dma_buffer [AUDIO_BUFFER_SIZE  >> 1]), AUDIO_BUFFER_SIZE >> 1);
     f_read(&fil,
            &dma_buffer[AUDIO_BUFFER_SIZE/2],
-           AUDIO_BUFFER_SIZE/2,
+           AUDIO_BUFFER_SIZE,
            (void *)&br);
 
-    if(AudioRemSize > (AUDIO_BUFFER_SIZE / 2))
-    {
-      AudioRemSize -= br;
-    }
-    else
-    {
-      AudioRemSize = 0;
-    }
+//    if(AudioRemSize > (AUDIO_BUFFER_SIZE / 2))
+//    {
+//      AudioRemSize -= br;
+//    }
+//    else
+//    {
+//      AudioRemSize = 0;
+//    }
 
-//	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_RESET);
 }
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
@@ -494,20 +462,20 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
   // first half finished, filling it up again while second half is playing
     f_read(&fil,
            &dma_buffer[0],
-           AUDIO_BUFFER_SIZE/2,
+           AUDIO_BUFFER_SIZE,
            (void *)&br);
 
-    if(AudioRemSize > (AUDIO_BUFFER_SIZE / 2))
-    {
-      AudioRemSize -= br;
-    }
-    else
-    {
-      AudioRemSize = 0;
-    }
+//    if(AudioRemSize > (AUDIO_BUFFER_SIZE / 2))
+//    {
+//      AudioRemSize -= br;
+//    }
+//    else
+//    {
+//      AudioRemSize = 0;
+//    }
 
-//	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_RESET);
 //  FillBuffer  (&(dma_buffer [0]), AUDIO_BUFFER_SIZE >> 1);
 }
 
