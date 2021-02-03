@@ -52,6 +52,9 @@ DMA_HandleTypeDef hdma_spi2_tx;
 
 SD_HandleTypeDef hsd;
 
+TIM_HandleTypeDef htim3;
+DMA_HandleTypeDef hdma_tim3_ch2;
+
 /* USER CODE BEGIN PV */
 
 /* Ping-Pong buffer used for audio play */
@@ -77,6 +80,7 @@ static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2S2_Init(void);
 static void MX_SDIO_SD_Init(void);
+static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -119,7 +123,63 @@ int main(void)
   MX_I2S2_Init();
   MX_SDIO_SD_Init();
   MX_FATFS_Init();
+  MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+
+
+
+
+
+
+#define PRESCALER 0
+#define AUTORELOAD 104
+
+#define ZERO (AUTORELOAD - 76) // This gives a HIGH signal of 350ns (and stays 900ns LOW)
+#define ONE 76                 // This gives a HIGH signal of 950ns (and stays 300ns LOW)
+
+#define BREAK 0               // This stays 1250ns LOW
+
+__HAL_TIM_SET_PRESCALER(&htim3, PRESCALER);
+__HAL_TIM_SET_AUTORELOAD(&htim3, AUTORELOAD);
+
+// 4 LED WS2812 strip. Each LED has 3 values G,R,B , each 8 bit. So each LED has 24Bit. The last "Dummy" LED is the break signal (8bit).
+
+// Naive PWM signal set.
+uint32_t fData[] = {
+//  LED 1 - GREEN=255, REF = 0 , BLUE = 0
+////  BIT7 ....... BIT0, BIT7......BIT0, BIT7.......BIT0
+//  //LED 2 - GREEN=0, RED = 255 , BLUE = 0
+  ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE, ONE, ONE, ONE, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO,
+//  //LED 3 - GREEN=0, RED = 0 , BLUE = 255
+  ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE, ONE, ONE, ONE, ONE,
+//  //BIT7 ....... BIT0, BIT7......BIT0, BIT7.......BIT0
+  ZERO, ZERO, ZERO, ONE, ONE, ONE, ONE, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO,
+  // DUMMY LED FOR BREAK SIGNAL!
+  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
+  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
+  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
+  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
+  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK
+};
+
+// Send the fData out on GPIO PB1 (default TIM3->Channel4->PWM output!
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   HAL_Delay(300);
 
@@ -128,7 +188,7 @@ int main(void)
   /*## Open and create a text file #################################*/
   HAL_Delay(300);
 
-  fr = f_open(&fil, "003.wav", FA_READ);
+  fr = f_open(&fil, "001.wav", FA_READ);
   if (fr) return (int)fr;
 //  WaveDataLength = f_size(&fil);
 
@@ -144,11 +204,14 @@ int main(void)
   {
 	  if (HAL_GPIO_ReadPin(GPIOA, SENSOR_Pin) == GPIO_PIN_SET)
 	  {
+//		  uint32_t ws2812_buffer[2] = {42, 21};
 		  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_SET);
+		  HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_2, fData, sizeof(fData) / sizeof(uint32_t));
+
 //		  f_lseek(&fil, 0);
 //		  f_read(&fil, &dma_buffer[0], AUDIO_BUFFER_SIZE, &br);
 //		  AudioRemSize = WaveDataLength - br;
-		  StartAudioBuffers(&hi2s2);
+//		  StartAudioBuffers(&hi2s2);
 	  }
 	  else
 	  {
@@ -307,6 +370,65 @@ static void MX_SDIO_SD_Init(void)
 
 }
 
+/**
+  * @brief TIM3 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM3_Init(void)
+{
+
+  /* USER CODE BEGIN TIM3_Init 0 */
+
+  /* USER CODE END TIM3_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+
+  /* USER CODE BEGIN TIM3_Init 1 */
+
+  /* USER CODE END TIM3_Init 1 */
+  htim3.Instance = TIM3;
+  htim3.Init.Prescaler = 0;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 104;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim3, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_PWM2;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+  /* USER CODE END TIM3_Init 2 */
+  HAL_TIM_MspPostInit(&htim3);
+
+}
+
 /** 
   * Enable DMA controller clock
   */
@@ -320,6 +442,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Stream4_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream4_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream4_IRQn);
+  /* DMA1_Stream5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
 }
 
@@ -341,7 +466,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, MIDI_OUT_Pin|WS2812_Pin|LED_STATUS_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, MIDI_OUT_Pin|LED_STATUS_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, LCD_A_Pin|LCD_B_Pin, GPIO_PIN_RESET);
@@ -357,8 +482,8 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOD, GPIO3_Pin|GPIO4_Pin|GPIO5_Pin|GPIO6_Pin 
                           |GPIO7_Pin|GPIO8_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : MIDI_OUT_Pin WS2812_Pin LED_STATUS_Pin */
-  GPIO_InitStruct.Pin = MIDI_OUT_Pin|WS2812_Pin|LED_STATUS_Pin;
+  /*Configure GPIO pins : MIDI_OUT_Pin LED_STATUS_Pin */
+  GPIO_InitStruct.Pin = MIDI_OUT_Pin|LED_STATUS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -418,10 +543,10 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-void DMA1_Stream5_IRQHandler(void) // this function must be included to avoid DMA to crash!
-{
-  HAL_DMA_IRQHandler(&hdma_spi2_tx);
-}
+//void DMA1_Stream5_IRQHandler(void) // this function must be included to avoid DMA to crash!
+//{
+//  HAL_DMA_IRQHandler(&hdma_spi2_tx);
+//}
 
 void StartAudioBuffers (I2S_HandleTypeDef *hi2s)
 {
