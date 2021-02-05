@@ -24,11 +24,28 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "string.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+
+typedef struct GPIOPin_TypeDef
+{
+	GPIO_TypeDef *port;
+	uint16_t *pin;
+} GPIOPin_TypeDef;
+
+static GPIOPin_TypeDef LCDs[7] = {
+		LCD_A_GPIO_Port, LCD_A_Pin,
+		LCD_B_GPIO_Port, LCD_B_Pin,
+		LCD_C_GPIO_Port, LCD_C_Pin,
+		LCD_D_GPIO_Port, LCD_D_Pin,
+		LCD_E_GPIO_Port, LCD_E_Pin,
+		LCD_F_GPIO_Port, LCD_F_Pin,
+		LCD_G_GPIO_Port, LCD_G_Pin,
+};
 
 /* USER CODE END PTD */
 
@@ -189,7 +206,8 @@ __HAL_TIM_SET_AUTORELOAD(&htim3, LED_AUTORELOAD);
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 
-
+uint8_t curr_digit = 0;
+uint8_t ms = 0;
   while (1)
   {
 //	  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_SET);
@@ -197,11 +215,30 @@ __HAL_TIM_SET_AUTORELOAD(&htim3, LED_AUTORELOAD);
 //	  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_RESET);
 //	  HAL_Delay(500);
 
-	  if (HAL_GPIO_ReadPin(GPIOA, SENSOR_Pin) == GPIO_PIN_SET)
+	  HAL_Delay(1);
+	  ms++;
+
+	  if (ms == 100)
 	  {
-		  PlayTrack(&hi2s2);
-		  HAL_Delay(200);
+		  if (HAL_GPIO_ReadPin(B_NEXT_GPIO_Port, B_NEXT_Pin) == GPIO_PIN_RESET)
+		  {
+			  Track_Next++;
+		  }
+
+		  if (HAL_GPIO_ReadPin(B_NEXT_GPIO_Port, B_PREV_Pin) == GPIO_PIN_RESET)
+		  {
+			  Track_Next--;
+		  }
+
+		  if (HAL_GPIO_ReadPin(GPIOA, SENSOR_Pin) == GPIO_PIN_SET)
+		  {
+			  PlayTrack(&hi2s2);
+		  }
+		  ms = 0;
 	  }
+
+	  UpdateLCD(curr_digit);
+	  curr_digit = 1 - curr_digit;
 
     /* USER CODE END WHILE */
 
@@ -529,11 +566,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-//void DMA1_Stream5_IRQHandler(void) // this function must be included to avoid DMA to crash!
-//{
-//  HAL_DMA_IRQHandler(&hdma_spi2_tx);
-//}
-
 void LoadTrack(void)
 {
 	// Loads the track in Track_Next into the Audio_Next_fil
@@ -555,22 +587,21 @@ void PlayTrack(I2S_HandleTypeDef *hi2s)
 	HAL_I2S_Transmit_DMA (hi2s, Audio_DMA_Buffer, AUDIO_BUFFER_SIZE);
 }
 
-//void StartAudioBuffers(I2S_HandleTypeDef *hi2s)
-//{
-//  // clear buffer
-////  memset (dma_buffer,0, sizeof (dma_buffer ));
-//  HAL_GPIO_WritePin(GPIOE, LCD_E_Pin, GPIO_PIN_SET);
-//  HAL_GPIO_WritePin(GPIOE, LCD_DIG1CC_Pin, GPIO_PIN_SET);
-//
-//
-////  AudioRemSize = WaveDataLength - br;
-//  HAL_I2S_Transmit_DMA (hi2s,  dma_buffer, AUDIO_BUFFER_SIZE);
-//}
+void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+  // First half finished: refill first half while second half is playing
+    f_read(&Audio_Current_fil,
+           &Audio_DMA_Buffer[0],
+           AUDIO_BUFFER_SIZE,
+           (void *)&br);
+
+	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_RESET);
+}
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-  // second half finished, filling it up again while first  half is playing
-//  FillBuffer  (&(dma_buffer [AUDIO_BUFFER_SIZE  >> 1]), AUDIO_BUFFER_SIZE >> 1);
+  // Second half finished: refill second half while first half is playing
     f_read(&Audio_Current_fil,
            &Audio_DMA_Buffer[AUDIO_BUFFER_SIZE/2],
            AUDIO_BUFFER_SIZE,
@@ -580,19 +611,46 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_RESET);
 }
 
-void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+void UpdateLCD(uint8_t Display_Number)
 {
-  // first half finished, filling it up again while second half is playing
-    f_read(&Audio_Current_fil,
-           &Audio_DMA_Buffer[0],
-           AUDIO_BUFFER_SIZE,
-           (void *)&br);
+	const uint8_t b7SegmentTable[10] = {
+	0x3F, /*0*/
+	0x06, /*1*/
+	0x5B, /*2*/
+	0x4F, /*3*/
+	0x66, /*4*/
+	0x6D, /*5*/
+	0x7D, /*6*/
+	0x07, /*7*/
+	0x7F, /*8*/
+	0x6F /*9*/
+	};
 
-	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_RESET);
-//  FillBuffer  (&(dma_buffer [0]), AUDIO_BUFFER_SIZE >> 1);
+	// Calculate pinout for LCD and set pins. Flip-flop between multiple LCD quickly enough to avoid flicker.
+
+	uint8_t digit = Track_Next;
+	if (Display_Number == 1)
+	{
+		digit %= 10;
+		HAL_GPIO_WritePin(LCD_DIG1CC_GPIO_Port, LCD_DIG1CC_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LCD_DIG2CC_GPIO_Port, LCD_DIG2CC_Pin, GPIO_PIN_SET);
+
+	}
+	else
+	{
+		digit /= 10;
+		HAL_GPIO_WritePin(LCD_DIG1CC_GPIO_Port, LCD_DIG1CC_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LCD_DIG2CC_GPIO_Port, LCD_DIG2CC_Pin, GPIO_PIN_RESET);
+
+	}
+
+	for (uint8_t i = 0; i < 8; i++)
+	{
+		uint8_t truth = (b7SegmentTable[digit] >> i) & 1;
+		HAL_GPIO_WritePin(LCDs[i].port, LCDs[i].pin, truth);
+	}
+
 }
-
 /* USER CODE END 4 */
 
 /**
