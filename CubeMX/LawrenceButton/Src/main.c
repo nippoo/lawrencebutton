@@ -36,6 +36,18 @@
 /* USER CODE BEGIN PD */
 
 #define AUDIO_BUFFER_SIZE	8192
+#define LED_NUM_PIXELS 256
+#define LED_BYTES (LED_NUM_PIXELS * 8 * 3)
+
+// WS2812 definitions
+
+#define LED_PRESCALER 0
+#define LED_AUTORELOAD 104
+#define LED_NULL_BYTES 500
+
+#define LED_ZERO (LED_AUTORELOAD - 76) // This gives a HIGH signal of 350ns (and stays 900ns LOW)
+#define LED_ONE 76                 // This gives a HIGH signal of 950ns (and stays 300ns LOW)
+#define LED_FRAMEBUFFER_SIZE (LED_BYTES + LED_NULL_BYTES)
 
 /* USER CODE END PD */
 
@@ -58,18 +70,24 @@ DMA_HandleTypeDef hdma_tim3_ch2;
 /* USER CODE BEGIN PV */
 
 /* Ping-Pong buffer used for audio play */
-uint16_t dma_buffer  [AUDIO_BUFFER_SIZE];
+uint16_t Audio_DMA_Buffer [AUDIO_BUFFER_SIZE]; // playing now, DMA circular buffer
+uint16_t Audio_Next_Buffer [AUDIO_BUFFER_SIZE]; // playing next, precached for minimum latency
 
-uint32_t AudioPlayStart = 0;
+uint8_t Track_Max = 99; // maximum track on SD card (<=99)
+uint8_t Track_Next = 0; // currently selected track on screen, will play next
+char Track_Current_Path[8] = "000.wav";
 
-uint32_t WaveDataLength = 0;
+uint32_t LED_Framebuffer	[LED_FRAMEBUFFER_SIZE] = {0};
 
-uint32_t AudioRemSize = 0;
+FIL Audio_Current_fil; // currently playing file (streaming now!)
+FIL Audio_Next_fil; // next up (to pre-buffer for instant playback)
+FIL LED_fil; // current screen track
+FATFS fatfs;
 
-FIL fil;        /* File object */
 FRESULT fr;
-FATFS myFAT;
+FILINFO fi;
 UINT br = 0;
+uint32_t i = 0;
 
 /* USER CODE END PV */
 
@@ -127,96 +145,64 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
 
+__HAL_TIM_SET_PRESCALER(&htim3, LED_PRESCALER);
+__HAL_TIM_SET_AUTORELOAD(&htim3, LED_AUTORELOAD);
+
+  // Fill screenbuffer with LOWs
+  for (i = 0; i < LED_BYTES; i++)
+  {
+	  LED_Framebuffer[i] = LED_ZERO;
+  }
+
+  // Start circular DMA
+  HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_2, LED_Framebuffer, sizeof(LED_Framebuffer) / sizeof(uint32_t));
 
 
+  // Mount SD card
+  fr = f_mount(&fatfs, (TCHAR const*)SDPath, 1);
 
+  if (fr != FR_OK)
+  {
+	  Error_Handler();
+  }
 
-#define PRESCALER 0
-#define AUTORELOAD 104
+  // Find highest file (looking contiguously, no gaps allowed!)
+  for (i = 0; i < 100; i++)
+  {
+	  sprintf(Track_Current_Path, "%03lu.wav", i);
+	  fr = f_stat(Track_Current_Path, &fi);
+	  if (fr != FR_OK)
+	  {
+		  if (i == 0) // 000.wav doesn't exist
+		  {
+			  Error_Handler();
+		  }
+		  Track_Max = i-1;
+		  break;
+	  }
+  }
 
-#define ZERO (AUTORELOAD - 76) // This gives a HIGH signal of 350ns (and stays 900ns LOW)
-#define ONE 76                 // This gives a HIGH signal of 950ns (and stays 300ns LOW)
-
-#define BREAK 0               // This stays 1250ns LOW
-
-__HAL_TIM_SET_PRESCALER(&htim3, PRESCALER);
-__HAL_TIM_SET_AUTORELOAD(&htim3, AUTORELOAD);
-
-// 4 LED WS2812 strip. Each LED has 3 values G,R,B , each 8 bit. So each LED has 24Bit. The last "Dummy" LED is the break signal (8bit).
-
-// Naive PWM signal set.
-uint32_t fData[] = {
-//  LED 1 - GREEN=255, REF = 0 , BLUE = 0
-////  BIT7 ....... BIT0, BIT7......BIT0, BIT7.......BIT0
-//  //LED 2 - GREEN=0, RED = 255 , BLUE = 0
-  ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE, ONE, ONE, ONE, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO,
-//  //LED 3 - GREEN=0, RED = 0 , BLUE = 255
-  ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ONE, ONE, ONE, ONE, ONE, ONE,
-//  //BIT7 ....... BIT0, BIT7......BIT0, BIT7.......BIT0
-  ZERO, ZERO, ZERO, ONE, ONE, ONE, ONE, ONE, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO, ZERO,
-  // DUMMY LED FOR BREAK SIGNAL!
-  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
-  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
-  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
-  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK,
-  BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK, BREAK
-};
-
-// Send the fData out on GPIO PB1 (default TIM3->Channel4->PWM output!
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  HAL_Delay(300);
-
-  fr = f_mount(&myFAT, (TCHAR const*)SDPath, 1);
-
-  /*## Open and create a text file #################################*/
-  HAL_Delay(300);
-
-  fr = f_open(&fil, "001.wav", FA_READ);
-  if (fr) return (int)fr;
-//  WaveDataLength = f_size(&fil);
-
-  // start circular dma
-  f_rewind(&fil);
-  f_read(&fil, &dma_buffer[0], AUDIO_BUFFER_SIZE*2, &br);
+  LoadTrack();
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+
   while (1)
   {
+//	  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_SET);
+//	  HAL_Delay(10);
+//	  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_RESET);
+//	  HAL_Delay(500);
+
 	  if (HAL_GPIO_ReadPin(GPIOA, SENSOR_Pin) == GPIO_PIN_SET)
 	  {
-//		  uint32_t ws2812_buffer[2] = {42, 21};
-		  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_SET);
-		  HAL_TIM_PWM_Start_DMA(&htim3, TIM_CHANNEL_2, fData, sizeof(fData) / sizeof(uint32_t));
+		  PlayTrack(&hi2s2);
+		  HAL_Delay(200);
+	  }
 
-//		  f_lseek(&fil, 0);
-//		  f_read(&fil, &dma_buffer[0], AUDIO_BUFFER_SIZE, &br);
-//		  AudioRemSize = WaveDataLength - br;
-//		  StartAudioBuffers(&hi2s2);
-	  }
-	  else
-	  {
-		  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_RESET);
-	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -548,35 +534,47 @@ static void MX_GPIO_Init(void)
 //  HAL_DMA_IRQHandler(&hdma_spi2_tx);
 //}
 
-void StartAudioBuffers (I2S_HandleTypeDef *hi2s)
+void LoadTrack(void)
 {
-  // clear buffer
-//  memset (dma_buffer,0, sizeof (dma_buffer ));
-  HAL_GPIO_WritePin(GPIOE, LCD_E_Pin, GPIO_PIN_SET);
-  HAL_GPIO_WritePin(GPIOE, LCD_DIG1CC_Pin, GPIO_PIN_SET);
+	// Loads the track in Track_Next into the Audio_Next_fil
+	  fr = f_open(&Audio_Next_fil, "003.wav", FA_READ);
+	  if (fr != FR_OK)
+	  {
+		  Error_Handler();
+	  }
 
-
-//  AudioRemSize = WaveDataLength - br;
-  HAL_I2S_Transmit_DMA (hi2s,  dma_buffer, AUDIO_BUFFER_SIZE);
+	  f_rewind(&Audio_Next_fil);
+	  f_read(&Audio_Next_fil, &Audio_Next_Buffer[0], AUDIO_BUFFER_SIZE*2, &br);
 }
+
+void PlayTrack(I2S_HandleTypeDef *hi2s)
+{
+	// Moves Audio_Next_Buffer into Audio_DMA_Buffer, starts playback
+	memcpy(Audio_DMA_Buffer, Audio_Next_Buffer, AUDIO_BUFFER_SIZE*2);
+	Audio_Current_fil = Audio_Next_fil;
+	HAL_I2S_Transmit_DMA (hi2s, Audio_DMA_Buffer, AUDIO_BUFFER_SIZE);
+}
+
+//void StartAudioBuffers(I2S_HandleTypeDef *hi2s)
+//{
+//  // clear buffer
+////  memset (dma_buffer,0, sizeof (dma_buffer ));
+//  HAL_GPIO_WritePin(GPIOE, LCD_E_Pin, GPIO_PIN_SET);
+//  HAL_GPIO_WritePin(GPIOE, LCD_DIG1CC_Pin, GPIO_PIN_SET);
+//
+//
+////  AudioRemSize = WaveDataLength - br;
+//  HAL_I2S_Transmit_DMA (hi2s,  dma_buffer, AUDIO_BUFFER_SIZE);
+//}
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
   // second half finished, filling it up again while first  half is playing
 //  FillBuffer  (&(dma_buffer [AUDIO_BUFFER_SIZE  >> 1]), AUDIO_BUFFER_SIZE >> 1);
-    f_read(&fil,
-           &dma_buffer[AUDIO_BUFFER_SIZE/2],
+    f_read(&Audio_Current_fil,
+           &Audio_DMA_Buffer[AUDIO_BUFFER_SIZE/2],
            AUDIO_BUFFER_SIZE,
            (void *)&br);
-
-//    if(AudioRemSize > (AUDIO_BUFFER_SIZE / 2))
-//    {
-//      AudioRemSize -= br;
-//    }
-//    else
-//    {
-//      AudioRemSize = 0;
-//    }
 
 	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_RESET);
@@ -585,19 +583,10 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
   // first half finished, filling it up again while second half is playing
-    f_read(&fil,
-           &dma_buffer[0],
+    f_read(&Audio_Current_fil,
+           &Audio_DMA_Buffer[0],
            AUDIO_BUFFER_SIZE,
            (void *)&br);
-
-//    if(AudioRemSize > (AUDIO_BUFFER_SIZE / 2))
-//    {
-//      AudioRemSize -= br;
-//    }
-//    else
-//    {
-//      AudioRemSize = 0;
-//    }
 
 	HAL_GPIO_WritePin(GPIOE, LCD_F_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(GPIOE, LCD_G_Pin, GPIO_PIN_RESET);
@@ -614,7 +603,8 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
   /* User can add his own implementation to report the HAL error return state */
-
+  HAL_GPIO_WritePin(GPIOA, LED_STATUS_Pin, GPIO_PIN_SET);
+  while (1) {}
   /* USER CODE END Error_Handler_Debug */
 }
 
