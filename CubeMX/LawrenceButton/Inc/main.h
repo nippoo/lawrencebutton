@@ -110,8 +110,9 @@ void Error_Handler(void);
 #define LED_STATUS_GPIO_Port GPIOA
 #define SDIO_CD_Pin GPIO_PIN_9
 #define SDIO_CD_GPIO_Port GPIOA
-#define SENSOR_Pin GPIO_PIN_12
-#define SENSOR_GPIO_Port GPIOA
+#define TRIGGER_Pin GPIO_PIN_12
+#define TRIGGER_GPIO_Port GPIOA
+#define TRIGGER_EXTI_IRQn EXTI15_10_IRQn
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
