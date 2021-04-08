@@ -43,8 +43,8 @@ typedef struct GPIOPin_TypeDef
 #define AUDIO_BUFFER_SIZE 4096
 #define LED_COLOUR_BUFFER_SIZE 1024
 
-#define LED_ZERO 28 // This gives a HIGH signal of 350ns (and stays 900ns LOW)
-#define LED_ONE 76  // This gives a HIGH signal of 950ns (and stays 300ns LOW)
+#define LED_ZERO 28 // HIGH signal of 350ns, then 900ns LOW
+#define LED_ONE 76  // HIGH signal of 950ns, then 300ns LOW
 
 #define LED_BYTES (LED_NUM_PIXELS * 8 * 3)
 #define LED_NULL_BYTES 500
@@ -98,7 +98,7 @@ const uint8_t b7SegmentTable[11] = {
 0x79  /*E (error)*/
 };
 
-const uint16_t Debounce_ms[4] = {80, 200, 200, 200};
+const uint16_t Debounce_ms[4] = {80, 200, 200, 200}; // TRIGGER, PREV, NEXT, STOP debounce in ms
 uint16_t Debounce_current[4] = {0};
 
 
@@ -109,13 +109,14 @@ uint16_t Audio_Next_Buffer [AUDIO_BUFFER_SIZE]; // playing next, precached for m
 uint8_t Track_Max = 99; // maximum track on SD card (<=99)
 uint8_t Track_Next = 0; // currently selected track on screen, will play next
 char Track_Next_Path[8] = "000.wav";
-uint8_t Track_Preloaded = 0; // is the first chunk of the track preloaded into RAM?
-uint8_t Track_Playing = 0;
-
-uint8_t LED_Default_Colour[3] = {255, 0, 0};
-uint8_t LED_Colour[3] = {0, 0, 0};
+uint8_t Track_Preloaded = 0; // BOOL is the first chunk of the track preloaded into RAM?
+uint8_t Track_Playing = 0; // BOOL is the track playing...
 
 uint32_t LED_Framebuffer	[LED_FRAMEBUFFER_SIZE] = {0};
+uint32_t LED_Colour_Buffer	[LED_COLOUR_BUFFER_SIZE] = {0};
+uint32_t LED_Current_Frame = 0; // what frame of the file we're on
+uint32_t LED_Last_Frame = 0; // number of frames total
+char LED_Current_Path[8] = "000.led";
 
 FIL Audio_Current_fil; // currently playing file (streaming now!)
 FIL Audio_Next_fil; // next up (to pre-buffer for instant playback)
@@ -674,12 +675,6 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 			}
 
 			PlayTrack(&hi2s2);
-			Track_Playing = 1;
-
-			for (i=0; i<3; i++)
-			{
-			  LED_Colour[i] = LED_Default_Colour[i];
-			}
 		}
 	}
 }
@@ -756,27 +751,53 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 
 	  else if (htim == &htim4) // every 40ms, 25fps
 	  {
-		  if (Track_Playing == 1)
+		  if (Track_Playing)
 		  {
-			  Set_LED_Colour(GRB_WORD(LED_Colour[0], LED_Colour[1], LED_Colour[2]));
-				  if (LED_Colour[0] != 0)
-				  {
-					  LED_Colour[0] -= 5;
-				  }
+			  if(LED_Current_Frame < LED_COLOUR_BUFFER_SIZE)
+			  {
+				  Set_LED_Colour(LED_Colour_Buffer[LED_Current_Frame]);
+				  LED_Current_Frame++;
+			  }
 		  }
 	}
 
 }
 
-void UpdateLEDBuffer(void)
+void LoadLEDBuffer(void)
 {
-	// Sets LED to next word and updates LED buffer if necessary.
-	// This would probably be nicer with DMA etc, but if we exceed one buffer
-	// of LED samples (~40s) then we're probably not overly concerned with a
-	// few ms of latency.
+	// Loads the entire file into LED buffer.
 
+	for(uint32_t i = 0; i < LED_COLOUR_BUFFER_SIZE; i++)
+	{
+		LED_Colour_Buffer[i] = 0;
+	}
 
+	sprintf(LED_Current_Path, "%03d.led", Track_Next);
+	fr = f_open(&LED_fil, LED_Current_Path, FA_READ);
 
+	if (fr == FR_OK)
+	{
+		char linebuffer[8] = "0000000";
+		for(uint32_t i = 0; i < LED_COLOUR_BUFFER_SIZE; i++)
+		{
+			f_gets(linebuffer, 8, &LED_fil);
+			if f_eof(&LED_fil)
+			{
+				f_close(&LED_fil);
+				return;
+			}
+			else
+			{
+				LED_Colour_Buffer[i] = strtol(linebuffer, '\0', 16);
+
+				// swap RGB to GRB (?!!) for DMA to WS2812
+				LED_Colour_Buffer[i] = (LED_Colour_Buffer[i] & 255) // B
+						+ ((LED_Colour_Buffer[i] & 0xff00) << 8) // G
+						+ ((LED_Colour_Buffer[i] & 0xff0000) >> 8); // R
+			}
+		}
+	}
+	f_close(&LED_fil);
 }
 
 void StopTrack(I2S_HandleTypeDef *hi2s)
@@ -828,6 +849,10 @@ void PlayTrack(I2S_HandleTypeDef *hi2s)
 	memcpy(Audio_DMA_Buffer, Audio_Next_Buffer, AUDIO_BUFFER_SIZE*2);
 	Audio_Current_fil = Audio_Next_fil;
 	HAL_I2S_Transmit_DMA (hi2s, Audio_DMA_Buffer, AUDIO_BUFFER_SIZE);
+	LED_Current_Frame = 0;
+	LoadLEDBuffer();
+
+	Track_Playing = 1;
 }
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
