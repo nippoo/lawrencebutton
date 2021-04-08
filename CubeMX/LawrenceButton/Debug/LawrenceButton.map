@@ -3886,6 +3886,19 @@ Discarded input sections
  .group         0x0000000000000000        0xc Src/main.o
  .group         0x0000000000000000        0xc Src/main.o
  .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
+ .group         0x0000000000000000        0xc Src/main.o
  .text          0x0000000000000000        0x0 Src/main.o
  .data          0x0000000000000000        0x0 Src/main.o
  .bss           0x0000000000000000        0x0 Src/main.o
@@ -5927,7 +5940,7 @@ LOAD /Applications/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.id
                 0x0000000000000ae4       0x22 /Applications/STM32CubeIDE.app/Contents/Eclipse/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.7-2018-q2-update.macos64_1.0.0.201904181610/tools/bin/../lib/gcc/arm-none-eabi/7.3.1/thumb/v7e-m/fpv4-sp/hard/crtn.o
 OUTPUT(LawrenceButton.elf elf32-littlearm)
 
-.debug_info     0x0000000000000000    0x195c9
+.debug_info     0x0000000000000000    0x194a6
  .debug_info    0x0000000000000000      0x945 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
  .debug_info    0x0000000000000945      0xe28 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
  .debug_info    0x000000000000176d      0x968 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
@@ -5947,15 +5960,15 @@ OUTPUT(LawrenceButton.elf elf32-littlearm)
  .debug_info    0x00000000000116d3      0xa46 Src/bsp_driver_sd.o
  .debug_info    0x0000000000012119      0xd7a Src/fatfs.o
  .debug_info    0x0000000000012e93      0x265 Src/fatfs_platform.o
- .debug_info    0x00000000000130f8     0x2b71 Src/main.o
- .debug_info    0x0000000000015c69      0xd14 Src/sd_diskio.o
- .debug_info    0x000000000001697d     0x1653 Src/stm32f4xx_hal_msp.o
- .debug_info    0x0000000000017fd0      0x767 Src/stm32f4xx_it.o
- .debug_info    0x0000000000018737      0x91c Src/sysmem.o
- .debug_info    0x0000000000019053      0x554 Src/system_stm32f4xx.o
- .debug_info    0x00000000000195a7       0x22 Startup/startup_stm32f407vgtx.o
+ .debug_info    0x00000000000130f8     0x2a4e Src/main.o
+ .debug_info    0x0000000000015b46      0xd14 Src/sd_diskio.o
+ .debug_info    0x000000000001685a     0x1653 Src/stm32f4xx_hal_msp.o
+ .debug_info    0x0000000000017ead      0x767 Src/stm32f4xx_it.o
+ .debug_info    0x0000000000018614      0x91c Src/sysmem.o
+ .debug_info    0x0000000000018f30      0x554 Src/system_stm32f4xx.o
+ .debug_info    0x0000000000019484       0x22 Startup/startup_stm32f407vgtx.o
 
-.debug_abbrev   0x0000000000000000     0x3342
+.debug_abbrev   0x0000000000000000     0x32cb
  .debug_abbrev  0x0000000000000000      0x1c7 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
  .debug_abbrev  0x00000000000001c7      0x2fa Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
  .debug_abbrev  0x00000000000004c1      0x229 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
@@ -5975,13 +5988,13 @@ OUTPUT(LawrenceButton.elf elf32-littlearm)
  .debug_abbrev  0x0000000000002253      0x26e Src/bsp_driver_sd.o
  .debug_abbrev  0x00000000000024c1      0x1df Src/fatfs.o
  .debug_abbrev  0x00000000000026a0       0xf7 Src/fatfs_platform.o
- .debug_abbrev  0x0000000000002797      0x35a Src/main.o
- .debug_abbrev  0x0000000000002af1      0x1fa Src/sd_diskio.o
- .debug_abbrev  0x0000000000002ceb      0x1ed Src/stm32f4xx_hal_msp.o
- .debug_abbrev  0x0000000000002ed8      0x172 Src/stm32f4xx_it.o
- .debug_abbrev  0x000000000000304a      0x1bb Src/sysmem.o
- .debug_abbrev  0x0000000000003205      0x12b Src/system_stm32f4xx.o
- .debug_abbrev  0x0000000000003330       0x12 Startup/startup_stm32f407vgtx.o
+ .debug_abbrev  0x0000000000002797      0x2e3 Src/main.o
+ .debug_abbrev  0x0000000000002a7a      0x1fa Src/sd_diskio.o
+ .debug_abbrev  0x0000000000002c74      0x1ed Src/stm32f4xx_hal_msp.o
+ .debug_abbrev  0x0000000000002e61      0x172 Src/stm32f4xx_it.o
+ .debug_abbrev  0x0000000000002fd3      0x1bb Src/sysmem.o
+ .debug_abbrev  0x000000000000318e      0x12b Src/system_stm32f4xx.o
+ .debug_abbrev  0x00000000000032b9       0x12 Startup/startup_stm32f407vgtx.o
 
 .debug_aranges  0x0000000000000000     0x1580
  .debug_aranges
@@ -6065,7 +6078,7 @@ OUTPUT(LawrenceButton.elf elf32-littlearm)
  .debug_ranges  0x00000000000013d8       0x18 Src/system_stm32f4xx.o
  .debug_ranges  0x00000000000013f0       0x20 Startup/startup_stm32f407vgtx.o
 
-.debug_macro    0x0000000000000000    0x24356
+.debug_macro    0x0000000000000000    0x247e0
  .debug_macro   0x0000000000000000      0x270 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
  .debug_macro   0x0000000000000270      0xa5a Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
  .debug_macro   0x0000000000000cca      0x196 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
@@ -6154,18 +6167,31 @@ OUTPUT(LawrenceButton.elf elf32-littlearm)
  .debug_macro   0x0000000000022a28      0x228 Src/bsp_driver_sd.o
  .debug_macro   0x0000000000022c50      0x34f Src/fatfs.o
  .debug_macro   0x0000000000022f9f      0x219 Src/fatfs_platform.o
- .debug_macro   0x00000000000231b8      0x3b9 Src/main.o
- .debug_macro   0x0000000000023571       0x16 Src/main.o
- .debug_macro   0x0000000000023587       0x20 Src/main.o
- .debug_macro   0x00000000000235a7      0x352 Src/sd_diskio.o
- .debug_macro   0x00000000000238f9      0x21f Src/stm32f4xx_hal_msp.o
- .debug_macro   0x0000000000023b18      0x229 Src/stm32f4xx_it.o
- .debug_macro   0x0000000000023d41      0x1ae Src/sysmem.o
- .debug_macro   0x0000000000023eef      0x23b Src/sysmem.o
- .debug_macro   0x000000000002412a       0x16 Src/sysmem.o
- .debug_macro   0x0000000000024140      0x216 Src/system_stm32f4xx.o
+ .debug_macro   0x00000000000231b8      0x47e Src/main.o
+ .debug_macro   0x0000000000023636       0x16 Src/main.o
+ .debug_macro   0x000000000002364c       0x20 Src/main.o
+ .debug_macro   0x000000000002366c       0x1c Src/main.o
+ .debug_macro   0x0000000000023688       0x10 Src/main.o
+ .debug_macro   0x0000000000023698       0x10 Src/main.o
+ .debug_macro   0x00000000000236a8       0x1c Src/main.o
+ .debug_macro   0x00000000000236c4       0x52 Src/main.o
+ .debug_macro   0x0000000000023716       0x40 Src/main.o
+ .debug_macro   0x0000000000023756       0x10 Src/main.o
+ .debug_macro   0x0000000000023766       0x40 Src/main.o
+ .debug_macro   0x00000000000237a6       0xd7 Src/main.o
+ .debug_macro   0x000000000002387d       0x1c Src/main.o
+ .debug_macro   0x0000000000023899       0x3d Src/main.o
+ .debug_macro   0x00000000000238d6       0x16 Src/main.o
+ .debug_macro   0x00000000000238ec      0x145 Src/main.o
+ .debug_macro   0x0000000000023a31      0x352 Src/sd_diskio.o
+ .debug_macro   0x0000000000023d83      0x21f Src/stm32f4xx_hal_msp.o
+ .debug_macro   0x0000000000023fa2      0x229 Src/stm32f4xx_it.o
+ .debug_macro   0x00000000000241cb      0x1ae Src/sysmem.o
+ .debug_macro   0x0000000000024379      0x23b Src/sysmem.o
+ .debug_macro   0x00000000000245b4       0x16 Src/sysmem.o
+ .debug_macro   0x00000000000245ca      0x216 Src/system_stm32f4xx.o
 
-.debug_line     0x0000000000000000    0x13412
+.debug_line     0x0000000000000000    0x134b7
  .debug_line    0x0000000000000000      0x969 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
  .debug_line    0x0000000000000969      0xa8d Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
  .debug_line    0x00000000000013f6      0xa37 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
@@ -6185,15 +6211,15 @@ OUTPUT(LawrenceButton.elf elf32-littlearm)
  .debug_line    0x000000000000e586      0x8ab Src/bsp_driver_sd.o
  .debug_line    0x000000000000ee31      0x957 Src/fatfs.o
  .debug_line    0x000000000000f788      0x767 Src/fatfs_platform.o
- .debug_line    0x000000000000feef      0xce1 Src/main.o
- .debug_line    0x0000000000010bd0      0x9d3 Src/sd_diskio.o
- .debug_line    0x00000000000115a3      0x883 Src/stm32f4xx_hal_msp.o
- .debug_line    0x0000000000011e26      0x85d Src/stm32f4xx_it.o
- .debug_line    0x0000000000012683      0x595 Src/sysmem.o
- .debug_line    0x0000000000012c18      0x77a Src/system_stm32f4xx.o
- .debug_line    0x0000000000013392       0x80 Startup/startup_stm32f407vgtx.o
+ .debug_line    0x000000000000feef      0xd86 Src/main.o
+ .debug_line    0x0000000000010c75      0x9d3 Src/sd_diskio.o
+ .debug_line    0x0000000000011648      0x883 Src/stm32f4xx_hal_msp.o
+ .debug_line    0x0000000000011ecb      0x85d Src/stm32f4xx_it.o
+ .debug_line    0x0000000000012728      0x595 Src/sysmem.o
+ .debug_line    0x0000000000012cbd      0x77a Src/system_stm32f4xx.o
+ .debug_line    0x0000000000013437       0x80 Startup/startup_stm32f407vgtx.o
 
-.debug_str      0x0000000000000000    0xd33a4
+.debug_str      0x0000000000000000    0xd339c
  .debug_str     0x0000000000000000    0xc80f3 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
                                       0xc848e (size before relaxing)
  .debug_str     0x00000000000c80f3      0x3e6 Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
@@ -6232,19 +6258,19 @@ OUTPUT(LawrenceButton.elf elf32-littlearm)
                                       0xcb5d7 (size before relaxing)
  .debug_str     0x00000000000d1693       0x2f Src/fatfs_platform.o
                                       0xc7906 (size before relaxing)
- .debug_str     0x00000000000d16c2      0x41d Src/main.o
-                                      0xccf34 (size before relaxing)
- .debug_str     0x00000000000d1adf       0x90 Src/sd_diskio.o
+ .debug_str     0x00000000000d16c2     0x159d Src/main.o
+                                      0xce0e7 (size before relaxing)
+ .debug_str     0x00000000000d2c5f       0x90 Src/sd_diskio.o
                                       0xcb5c8 (size before relaxing)
- .debug_str     0x00000000000d1b6f       0x39 Src/stm32f4xx_hal_msp.o
+ .debug_str     0x00000000000d2cef       0x39 Src/stm32f4xx_hal_msp.o
                                       0xc8ebd (size before relaxing)
- .debug_str     0x00000000000d1ba8      0x11d Src/stm32f4xx_it.o
+ .debug_str     0x00000000000d2d28      0x11d Src/stm32f4xx_it.o
                                       0xc8244 (size before relaxing)
- .debug_str     0x00000000000d1cc5     0x1654 Src/sysmem.o
+ .debug_str     0x00000000000d2e45      0x4cc Src/sysmem.o
                                        0x7af9 (size before relaxing)
- .debug_str     0x00000000000d3319       0x5a Src/system_stm32f4xx.o
+ .debug_str     0x00000000000d3311       0x5a Src/system_stm32f4xx.o
                                       0xc79bc (size before relaxing)
- .debug_str     0x00000000000d3373       0x31 Startup/startup_stm32f407vgtx.o
+ .debug_str     0x00000000000d336b       0x31 Startup/startup_stm32f407vgtx.o
                                          0x7b (size before relaxing)
 
 .comment        0x0000000000000000       0x7b

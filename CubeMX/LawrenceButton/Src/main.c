@@ -21,6 +21,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "string.h"
+#include "stdio.h"
 
 /* USER CODE END Includes */
 
@@ -75,13 +76,13 @@ DMA_HandleTypeDef hdma_tim3_ch2;
 /* USER CODE BEGIN PV */
 
 static GPIOPin_TypeDef LCDs[7] = {
-	LCD_A_GPIO_Port, LCD_A_Pin,
-	LCD_B_GPIO_Port, LCD_B_Pin,
-	LCD_C_GPIO_Port, LCD_C_Pin,
-	LCD_D_GPIO_Port, LCD_D_Pin,
-	LCD_E_GPIO_Port, LCD_E_Pin,
-	LCD_F_GPIO_Port, LCD_F_Pin,
-	LCD_G_GPIO_Port, LCD_G_Pin,
+	{LCD_A_GPIO_Port, LCD_A_Pin},
+	{LCD_B_GPIO_Port, LCD_B_Pin},
+	{LCD_C_GPIO_Port, LCD_C_Pin},
+	{LCD_D_GPIO_Port, LCD_D_Pin},
+	{LCD_E_GPIO_Port, LCD_E_Pin},
+	{LCD_F_GPIO_Port, LCD_F_Pin},
+	{LCD_G_GPIO_Port, LCD_G_Pin},
 };
 
 const uint8_t b7SegmentTable[11] = {
@@ -143,6 +144,12 @@ static void MX_TIM3_Init(void);
 static void MX_TIM2_Init(void);
 static void MX_TIM4_Init(void);
 /* USER CODE BEGIN PFP */
+
+void LoadTrack(void);
+void PlayTrack(I2S_HandleTypeDef*);
+void StopTrack(I2S_HandleTypeDef*);
+void UpdateLCD(uint8_t);
+void Set_LED_Colour(uint32_t);
 
 /* USER CODE END PFP */
 
